@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Chat Message Observer",
+  "version": "1.0",
+  "description": "A Chrome extension to observe new YouTube chat messages using MutationObserver.",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://www.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content_tmp.js"],
+      "all_frames": false
+    }
+  ]
+}
+

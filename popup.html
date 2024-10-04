@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OBS Control Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            width: 250px;
+            padding: 10px;
+        }
+        input, button {
+            width: 100%;
+            margin: 5px 0;
+        }
+        #status {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<h2>OBS Control</h2>
+<!-- Status text -->
+<p id="chat_status">Status: Not Connected</p>
+<p id="chat_message">...</p>
+<p id="obs_status">OBS: Not Connected</p>
+<p id="background_status">Srv:</p>
+
+<!-- Connect to OBS button -->
+<button id="connectToChat">Connect to Chat</button>
+<button id="connectOBS">Connect to OBS</button>
+
+<!-- Start/Stop Timer buttons -->
+<button id="checkBackgroundService">Check Background Service</button>
+<button id="stopTimer">Stop Timer</button>
+
+<!-- Manual Chat Setup -->
+<button id="checkStatus">Check Chat Status</button>
+<button id="setupIframe">Setup iframe</button>
+<button id="setupObserver">Setup Observer</button>
+<button id="removeObserver">Remove Observer</button>
+
+
+<script src="popup.js"></script>
+</body>
+</html>
