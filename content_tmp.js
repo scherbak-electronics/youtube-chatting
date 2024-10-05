@@ -1,10 +1,51 @@
 let chatIframe = null;
 let chatContainer = null;
 let observer = null;
-let isActive = false;
 
-console.log('Content script loaded.');
+const port = chrome.runtime.connect({ name: "content" });
 
+port.onMessage.addListener((request) => {
+    console.log("Message from background script:");
+
+    if (request.action === 'setupObserver') {
+        setupChatObserver();
+        sendStatus();
+    }
+    if (request.action === 'setupChatIframe') {
+        setupChatIframe();
+        sendStatus();
+    }
+    if (request.action === 'removeObserver') {
+        removeChatObserver();
+    }
+    if (request.action === 'checkStatus') {
+        console.log('content check status');
+        sendStatus();
+    }
+    if (request.action === 'tryToConnect') {
+        console.log('content trying to connect...');
+        sendTryToConnectResponse();
+    }
+});
+
+function sendStatus() {
+    port.postMessage({action: 'updateStatus', status: getStatus()})
+}
+function sendTryToConnectResponse() {
+    port.postMessage({action: 'tryToConnectResponse', status: getStatus()})
+}
+
+function getStatus() {
+    let chatContainerTmp;
+    if (chatIframe) {
+        chatContainerTmp = chatIframe.contentDocument.querySelector('#items');
+    }
+    return {
+        iframe: chatIframe ? 'ok' : 'missing',
+        observer: observer ? 'ok' : 'not configured',
+        container: chatContainer === chatContainerTmp ? 'ok' : 'invalid'
+    };
+}
 // Start observing the YouTube chat iframe and its content
 function setupChatIframe() {
     if (window.self !== window.top) {
@@ -32,26 +73,17 @@ function setupChatObserver() {
                             const contentDiv = node.querySelector('div#content');
                             const messageSpan = contentDiv.querySelector('span#message');
                             const messageText = messageSpan ? messageSpan.innerText : 'No message content';
-
                             try {
-                                if (chrome && chrome.runtime && chrome.runtime.id) {
-                                    chrome.runtime.sendMessage({ action: 'newChatMessage', message: messageText }, (response) => {
-                                        if (chrome.runtime.lastError) {
-                                            console.error('Error sending message:', chrome.runtime.lastError);
-                                        }
-                                    });
-                                }
+                                port.postMessage({ action: 'newChatMessage', message: messageText });
                             } catch (error) {
-                                console.error('Extension context invalidated or communication error:', error);
+                                console.log('Extension context invalidated. Refresh the page.');
                             }
                         }
                     });
                 });
             });
-
             const config = { childList: true, subtree: true };
             observer.observe(chatContainer, config);
-            //console.log('Chat observer activated.');
         } else {
             console.log('Chat container not found.');
         }
@@ -71,26 +103,4 @@ function removeChatObserver() {
     }
 }
 
-// Handle requests from background.js
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (request.action === 'setupObserver') {
-        setupChatObserver();
-        const observerStatus = observer ? 'ok' : 'not configured';
-        sendResponse({ observerStatus });
-    }
-    if (request.action === 'setupChatIframe') {
-        setupChatIframe();
-        const iframeStatus = chatIframe ? 'ok' : 'missing';
-        sendResponse({ iframeStatus });
-    }
-    if (request.action === 'removeObserver') {
-        removeChatObserver();
-    }
-    if (request.action === 'checkStatus') {
-        // Send back the status of the iframe and observer
-        const iframeStatus = chatIframe ? 'ok' : 'missing';
-        const observerStatus = observer ? 'ok' : 'not configured';
-        console.log('content check status');
-        sendResponse({ iframeStatus, observerStatus });
-    }
-});
+console.log('Content ready');

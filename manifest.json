@@ -1,9 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Chat Message Observer",
+  "name": "OBS Control YouTube Chat",
   "version": "1.0",
-  "description": "A Chrome extension to observe new YouTube chat messages using MutationObserver.",
+  "description": "A Chrome extension that allows you to control scenes and media sources in OBS studio during a live broadcast via special messages in the YouTube chat.",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "icons": {
+    "16": "icons/obs_youtube_ctrl_16.png",
+    "48": "icons/obs_youtube_ctrl_48.png",
+    "128": "icons/obs_youtube_ctrl_128.png"
+  },
   "host_permissions": [
     "https://www.youtube.com/*"
   ],
@@ -11,12 +16,17 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/obs_youtube_ctrl_16.png",
+      "48": "icons/obs_youtube_ctrl_48.png",
+      "128": "icons/obs_youtube_ctrl_128.png"
+    }
   },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content_tmp.js"],
+      "js": ["content.js"],
       "all_frames": false
     }
   ]

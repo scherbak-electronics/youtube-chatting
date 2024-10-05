@@ -1,6 +1,92 @@
 let obsSocket = null;
-let monitoringInterval = null;
-let chatReady = false;
+let tryingInterval = null;
+let popupPort = null;
+let contentPort = null;
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "popup") {
+    popupPort = port;
+    console.log("Popup opened");
+
+    // Detect when the popup closes
+    popupPort.onDisconnect.addListener(() => {
+      popupPort = null;
+      console.log("Popup was closed (detected in background script)");
+    });
+    popupPort.onMessage.addListener((request) => {
+      console.log("Message from popup");
+      popupListener(request);
+    });
+    sendToContent({ action: 'checkStatus' });
+  }
+  if (port.name === "content") {
+    contentPort = port;
+    console.log("Content opened");
+    port.onDisconnect.addListener(() => {
+      contentPort = null;
+      console.log("Content was closed (detected in background script)");
+    });
+    contentPort.onMessage.addListener((request) => {
+      console.log("Message from content");
+      contentListener(request);
+    });
+    sendToContent({ action: 'checkStatus' });
+  }
+});
+
+function sendToContent(request) {
+  if (contentPort) {
+    contentPort.postMessage(request);
+  } else {
+    sendToPopup({action: 'updateStatus', status: {background: 'Please reload youtube page CMD+R'}});
+  }
+}
+function sendToPopup(request) {
+  if (popupPort) {
+    popupPort.postMessage(request);
+  }
+}
+function popupListener(request) {
+  if (request.action === 'popupOpened') {
+    //connectToOBS();
+  }
+  if (request.action === 'connectOBS') {
+    //connectToOBS();
+  }
+  if (request.action === 'connectToChat') {
+    startTryingToConnectToContent();
+  }
+  if (request.action === 'checkContentStatus') {
+    sendToContent({ action: 'checkStatus' });
+  }
+}
+function contentListener(request) {
+  if (request.action === 'updateStatus') {
+    sendToPopup({action: 'updateStatus', status: request.status});
+  }
+  if (request.action === 'tryToConnectResponse') {
+    sendToPopup({action: 'updateStatus', status: request.status});
+    if (request.status.iframe !== 'ok') {
+      if (request.status.observer !== 'ok') {
+        sendToContent({ action: 'setupChatIframe' });
+      }
+    } else {
+      if (request.status.observer !== 'ok') {
+        sendToContent({ action: 'setupObserver' });
+      } else {
+        if (request.status.container !== 'ok') {
+          console.log('container missing!');
+          sendToPopup({action: 'updateStatus', status: {background: 'Please reload youtube page CMD+R'}});
+        } else {
+          stopTryingToConnectToContent();
+        }
+      }
+    }
+  }
+  if (request.action === 'newChatMessage') {
+    updatePopupChatMessage(request.message);
+  }
+}
 
 function connectToOBS() {
   obsSocket = new WebSocket('wss://192.168.1.14');  // Replace with your OBS WebSocket URL
@@ -30,59 +116,40 @@ function connectToOBS() {
   };
 }
 
-let monitoringHandler = () => {
-    sendToTab({ action: 'checkStatus' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error:', chrome.runtime.lastError);
-        updateBackgroundServiceStatus('Error:' + chrome.runtime.lastError);
-      }
-      if (response) {
-        updatePopupChatStatus(`Iframe: ${response.iframeStatus}, Observer: ${response.observerStatus}`);
-        if (!chatReady) {
-          if (response.iframeStatus !== 'ok') {
-            setupChatIframe();
-          } else {
-            if (response.observerStatus !== 'ok') {
-              setupObserver();
-            } else {
-              chatReady = true;
-            }
-          }
-        }
-      } else {
-        console.log('check status error');
-        updateBackgroundServiceStatus('check status error');
-      }
-    });
+
+
+function startTryingToConnectToContent() {
+  tryingInterval = setInterval(tryToConnectToContent, 2000)
 }
 
-function startMonitoring() {
-  monitoringInterval = setInterval(monitoringHandler, 2000);  // Check every 2 seconds
+function stopTryingToConnectToContent() {
+  clearInterval(tryingInterval);
+  tryingInterval = null;
 }
 
-// Stop iframe checking timer
-function stopMonitoring() {
-  if (monitoringInterval) {
-    clearInterval(monitoringInterval);
-    monitoringInterval = null;
+function tryToConnectToContent() {
+  sendToContent({ action: 'tryToConnect' });
+}
+
+function updatePopupChatMessage(message) {
+  if (popupPort) {
+    popupPort.postMessage({action: 'updateChatMessage', message});
   }
 }
 
-// Update popup status
-function updatePopupChatStatus(status) {
-  chrome.runtime.sendMessage({ action: 'updateChatStatus', status });
-}
-function updatePopupChatMessage(message) {
-  chrome.runtime.sendMessage({ action: 'updateChatMessage', message });
-}
 
-function updatePopupOBSStatus(status) {
-  chrome.runtime.sendMessage({ action: 'updateOBSStatus', status });
-}
+// Initiate OBS connection and iframe checking on startup
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('YouTube Chat Observer Extension installed');
+});
 
-function updateBackgroundServiceStatus(status) {
-  chrome.runtime.sendMessage({ action: 'updateBackgroundServiceStatus', status });
-}
+
+
+
+
+
+
+
 function switchScene(sceneName) {
   if (obsSocket && obsSocket.readyState === 1) {
     obsSocket.send(JSON.stringify({
@@ -117,92 +184,4 @@ function generateRequestId() {
   return `request-${Date.now()}`;
 }
 
-// Initiate OBS connection and iframe checking on startup
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('YouTube Chat Observer Extension installed');
-});
-
-
-
-// Background listener to handle messages from popup.js
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-
-  if (request.action === 'newChatMessage') {
-    updatePopupChatMessage(request.message);
-  }
-
-  if (request.action === 'connectOBS') {
-    //connectToOBS();
-  }
-  if (request.action === 'connectToChat') {
-    startMonitoring();
-    updatePopupChatStatus('chat starting...');
-  }
-
-  if (request.action === 'checkChatStatus') {
-      sendToTab({ action: 'checkStatus' }, (response) => {
-        const iframeStatus = response ? response.iframeStatus : 'unknown';
-        const observerStatus = response ? response.observerStatus : 'unknown';
-        updatePopupChatStatus(`Iframe: ${iframeStatus}, Observer: ${observerStatus}`);
-      });
-  }
-  if (request.action === 'setupChatIframe') {
-    sendToTab({ action: 'setupChatIframe' }, (response) => {
-      const iframeStatus = response ? response.iframeStatus : 'unknown';
-      const observerStatus = response ? response.observerStatus : 'unknown';
-      updatePopupChatStatus(`Iframe: ${iframeStatus}, Observer: ${observerStatus}`);
-    });
-  }
-  if (request.action === 'setupObserver') {
-    sendToTab({ action: 'setupObserver' }, (response) => {
-      if (response) {
-        const observerStatus = response ? response.observerStatus : 'unknown';
-        updatePopupChatStatus(`Observer: ${observerStatus}`);
-      }
-    });
-  }
-  if (request.action === 'checkBackgroundService') {
-    updateBackgroundServiceStatus('Service still alive');
-  }
-  sendResponse({resp: 'ok'});
-  return true; // Indicate async response if needed
-});
-
-function setupChatIframe() {
-  sendToTab({ action: 'setupChatIframe' }, (response) => {
-    const iframeStatus = response ? response.iframeStatus : 'unknown';
-    updatePopupChatStatus(`Iframe: ${iframeStatus}`);
-  });
-}
-
-function setupObserver() {
-  sendToTab({ action: 'setupObserver' }, (response) => {
-    if (response) {
-      const observerStatus = response ? response.observerStatus : 'unknown';
-      updatePopupChatStatus(`Observer: ${observerStatus}`);
-    }
-  });
-}
-
-function sendToTab(request, response) {
-  try {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs.length === 0) {
-        console.error("No active tab found.");
-        updateBackgroundServiceStatus('Error: No active tab found.');
-        return;
-      }
-
-      const activeTab = tabs[0];
-      if (activeTab && activeTab.id) {
-        chrome.tabs.sendMessage(activeTab.id, request, response);
-      } else {
-        console.error("Active tab does not have a valid ID.");
-        updateBackgroundServiceStatus('Error: Active tab does not have a valid ID.');
-      }
-    });
-  } catch (error) {
-    console.error('Extension context invalidated or communication error:', error);
-    updateBackgroundServiceStatus('Ex: ' + error);
-  }
-}
+console.log("background ready");
