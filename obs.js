@@ -34,6 +34,7 @@ function sendToPopup(request) {
 }
 
 function getOBSCommand(chatMsg) {
+         console.log('obsCommands:', obsCommands);
     if (obsCommands) {
         let command = parseCommandParam(chatMsg);
         let cmdKey = chatMsg;
@@ -42,16 +43,17 @@ function getOBSCommand(chatMsg) {
             cmdKey = command.cmd;
             param = command.param;
         }
-        return obsCommands.forEach((mapping) => {
-            if (mapping.chatCommand === cmdKey) {
-                return {
-                    action: mapping.action,
-                    scene: mapping.sceneName,
-                    media: mapping.mediaName,
-                    param: param
-                };
-            }
+        let cmdMapping = obsCommands.find((mapping) => {
+            return mapping.chatCommand === cmdKey;
         });
+        if (cmdMapping) {
+           return {
+               action: cmdMapping.action,
+               scene: cmdMapping.sceneName,
+               media: cmdMapping.mediaName,
+               param: param
+           };
+        }
     }
     return null;
 }
@@ -101,6 +103,7 @@ function isOBSConnected() {
 
 function chatCommandHandler(chatCmd) {
     let command = getOBSCommand(chatCmd);
+    console.log('command:', command);
     if (command) {
         sendToPopup({action: 'updateOBSCommand', command: command});
         if (command.action === 'switchScene') {

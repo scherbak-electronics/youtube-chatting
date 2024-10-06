@@ -36,7 +36,16 @@ port.onMessage.addListener((request) => {
     }
     if (request.action === 'updateOBSCommand') {
         if (obsCommandText) {
-            obsCommandText.textContent = `a:${request.command.action} s:${request.command.scene} m:${request.command.media} p:${request.command.param}`;
+           if (request.command) {
+              console.log(request.command);
+              obsCommandText.textContent = `a:${request.command.action} s:${request.command.scene} m:${request.command.media} p:${request.command.param}`;
+           } else {
+              if (request.error) {
+                 obsCommandText.textContent = request.error;
+              } else {
+                 obsCommandText.textContent = 'internal error';
+              }
+           }
         }
     }
 });

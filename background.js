@@ -28,6 +28,9 @@ chrome.runtime.onConnect.addListener((port) => {
       popupListener(request);
     });
     sendToContent({ action: 'checkStatus' });
+    if (isOBSConnected()) {
+       sendToPopup({action: 'updateOBSStatus', status: 'connected'});
+    }  
   }
   if (port.name === "content") {
     contentPort = port;
@@ -96,7 +99,9 @@ function contentListener(request) {
   if (request.action === 'newChatMessage') {
     updatePopupChatMessage(request.message);
     if (isOBSConnected()) {
+    console.log('message:', request.message);
       if (request.message.startsWith("$")) {
+      console.log('message$:', request.message);
         chatCommandHandler(request.message);
       }
     }
