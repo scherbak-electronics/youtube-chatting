@@ -1,3 +1,6 @@
+/*
+ * content.js
+ * */
 let chatIframe = null;
 let chatContainer = null;
 let observer = null;

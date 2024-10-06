@@ -1,6 +1,11 @@
+/*
+ * popup.js
+ * */
 let chatStatusText = null;
 let backgroundServiceStatusText = null;
 let chatMessageText = null;
+let obsStatusText = null;
+let obsCommandText = null;
 const port = chrome.runtime.connect({ name: "popup" });
 
 // Send messages to the background script while the popup is open
@@ -24,32 +29,32 @@ port.onMessage.addListener((request) => {
             chatMessageText.textContent = `: ${request.message}`;
         }
     }
+    if (request.action === 'updateOBSStatus') {
+        if (obsStatusText) {
+            obsStatusText.textContent = `OBS: ${request.status}`;
+        }
+    }
+    if (request.action === 'updateOBSCommand') {
+        if (obsCommandText) {
+            obsCommandText.textContent = `a:${request.command.action} s:${request.command.scene} m:${request.command.media} p:${request.command.param}`;
+        }
+    }
 });
 
 document.addEventListener('DOMContentLoaded', function () {
     chatStatusText = document.getElementById('chat_status');
     chatMessageText = document.getElementById('chat_message');
-    const obsStatusText = document.getElementById('obs_status');
+    obsStatusText = document.getElementById('obs_status');
+    obsCommandText = document.getElementById('obs_command');
     backgroundServiceStatusText = document.getElementById('background_status');
 
     // Connect to OBS button
     document.getElementById('connectOBS').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'connectOBS' });
+        port.postMessage({ action: 'connectOBS' });
     });
 
     document.getElementById('connectToChat').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'connectToChat' });
         port.postMessage({ action: "connectToChat" });
-    });
-
-    // Start Timer button
-    document.getElementById('checkBackgroundService').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'checkBackgroundService' });
-    });
-
-    // Stop Timer button
-    document.getElementById('stopTimer').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'stopTimer' });
     });
 
     // Check Chat Status button
@@ -57,34 +62,5 @@ document.addEventListener('DOMContentLoaded', function () {
         //chrome.runtime.sendMessage({ action: 'checkContentStatus' });
         port.postMessage({ action: "checkContentStatus" });
     });
-
-    // Setup Observer button
-    document.getElementById('setupObserver').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'setupObserver' });
-    });
-
-    document.getElementById('setupIframe').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'setupChatIframe' });
-    });
-
-    document.getElementById('removeObserver').addEventListener('click', function () {
-        //chrome.runtime.sendMessage({ action: 'removeObserver' });
-    });
-
-    // Listen for status updates from background.js
-    // chrome.runtime.onMessage.addListener((request) => {
-    //     if (request.action === 'updateChatStatus') {
-    //         chatStatusText.textContent = `Status: ${request.status}`;
-    //     }
-    //     if (request.action === 'updateChatMessage') {
-    //         chatMessageText.textContent = `: ${request.message}`;
-    //     }
-    //     if (request.action === 'updateOBSStatus') {
-    //         obsStatusText.textContent = `: ${request.status}`;
-    //     }
-    //     if (request.action === 'updateBackgroundServiceStatus') {
-    //         backgroundServiceStatusText.textContent = `Srv: ${request.status}`;
-    //     }
-    // });
 });
 console.log("Popup ready");

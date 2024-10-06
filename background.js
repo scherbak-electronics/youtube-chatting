@@ -1,7 +1,17 @@
-let obsSocket = null;
+/*
+ * background.js
+ * */
+import { connectToOBS, isOBSConnected, chatCommandHandler } from './obs.js';
+
+
 let tryingInterval = null;
 let popupPort = null;
 let contentPort = null;
+
+
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('YouTube Chat Observer Extension installed');
+});
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === "popup") {
@@ -51,7 +61,7 @@ function popupListener(request) {
     //connectToOBS();
   }
   if (request.action === 'connectOBS') {
-    //connectToOBS();
+    connectToOBS();
   }
   if (request.action === 'connectToChat') {
     startTryingToConnectToContent();
@@ -85,35 +95,12 @@ function contentListener(request) {
   }
   if (request.action === 'newChatMessage') {
     updatePopupChatMessage(request.message);
-  }
-}
-
-function connectToOBS() {
-  obsSocket = new WebSocket('wss://192.168.1.14');  // Replace with your OBS WebSocket URL
-
-  obsSocket.onopen = function() {
-    console.log('WebSocket connection to OBS established.');
-    const identifyMessage = {
-      "op": 1,
-      "d": { "rpcVersion": 1 }
-    };
-    obsSocket.send(JSON.stringify(identifyMessage));
-  };
-
-  obsSocket.onmessage = function(event) {
-    const message = JSON.parse(event.data);
-    if (message.op === 2) {
-      console.log('Authenticated with OBS.');
+    if (isOBSConnected()) {
+      if (request.message.startsWith("$")) {
+        chatCommandHandler(request.message);
+      }
     }
-  };
-
-  obsSocket.onclose = function() {
-    console.log('OBS WebSocket connection closed.');
-  };
-
-  obsSocket.onerror = function(error) {
-    console.error('OBS WebSocket Error:', error);
-  };
+  }
 }
 
 
@@ -138,50 +125,5 @@ function updatePopupChatMessage(message) {
 }
 
 
-// Initiate OBS connection and iframe checking on startup
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('YouTube Chat Observer Extension installed');
-});
-
-
-
-
-
-
-
-
-function switchScene(sceneName) {
-  if (obsSocket && obsSocket.readyState === 1) {
-    obsSocket.send(JSON.stringify({
-      "op": 6,
-      "d": {
-        "requestType": "SetCurrentProgramScene",
-        "requestId": generateRequestId(),
-        "requestData": { "sceneName": sceneName }
-      }
-    }));
-  }
-}
-
-function setText(sourceName, text) {
-  if (obsSocket && obsSocket.readyState === 1) {
-    obsSocket.send(JSON.stringify({
-      "op": 6,
-      "d": {
-        "requestType": "SetInputSettings",
-        "requestId": generateRequestId(),
-        "requestData": {
-          "inputName": sourceName,
-          "inputSettings": { "text": text }
-        }
-      }
-    }));
-  }
-}
-
-// Helper function to generate a request ID
-function generateRequestId() {
-  return `request-${Date.now()}`;
-}
 
 console.log("background ready");

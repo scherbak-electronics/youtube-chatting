@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Control YouTube Chat - Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        .panel {
+            margin-bottom: 20px;
+        }
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .mapping-table th, .mapping-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .mapping-table th {
+            background-color: #f2f2f2;
+        }
+        .mapping-table input, .mapping-table select {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<h2>OBS Control YouTube Chat - Settings</h2>
+
+<!-- Top panel for socket settings -->
+<div class="panel" id="socket-settings">
+    <h3>OBS WebSocket Settings</h3>
+    <label for="obsUrl">OBS WebSocket URL:</label>
+    <input type="text" id="obsUrl" placeholder="e.g., ws://localhost:4455" />
+
+    <label for="obsPassword">OBS WebSocket Password:</label>
+    <input type="password" id="obsPassword" />
+
+    <button id="saveSettings">Save Connection Settings</button>
+    <div id="statusMessage" style="margin-top: 20px;"></div>
+</div>
+
+<!-- Bottom expandable panel for command mapping -->
+<div class="panel" id="command-mapping">
+    <h3>Command to OBS Action Mapping</h3>
+    <button id="addMapping">Add New Command</button>
+
+    <table class="mapping-table">
+        <thead>
+        <tr>
+            <th>Chat Command</th>
+            <th>Action</th>
+            <th>Scene Name</th>
+            <th>Media Name</th>
+            <th>Remove</th>
+        </tr>
+        </thead>
+        <tbody id="mappingTableBody">
+        <!-- Dynamic rows will be inserted here -->
+        </tbody>
+    </table>
+
+    <button id="saveMappings">Save Mappings</button>
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>
