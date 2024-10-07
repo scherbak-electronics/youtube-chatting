@@ -50,7 +50,7 @@ function loadMappings() {
     chrome.storage.sync.get(['commandMappings'], function(items) {
         const mappings = items.commandMappings || [];
         mappings.forEach((mapping) => {
-            addMappingRow(mapping.chatCommand, mapping.action, mapping.sceneName, mapping.mediaName);
+            addMappingRow(mapping.cmdKey, mapping.action, mapping.scene, mapping.media);
         });
     });
 }
@@ -61,12 +61,12 @@ function saveMappings() {
     const rows = document.querySelectorAll('#mappingTableBody tr');
 
     rows.forEach((row) => {
-        const chatCommand = row.querySelector('.chatCommand').value;
+        const cmdKey = row.querySelector('.chatCommand').value;
         const action = row.querySelector('.action').value;
-        const sceneName = row.querySelector('.sceneName').value;
-        const mediaName = row.querySelector('.mediaName').value;
+        const scene = row.querySelector('.sceneName').value;
+        const media = row.querySelector('.mediaName').value;
 
-        mappings.push({ chatCommand, action, sceneName, mediaName });
+        mappings.push({ cmdKey, action, scene, media });
     });
 
     chrome.storage.sync.set({ commandMappings: mappings }, function() {
@@ -75,13 +75,13 @@ function saveMappings() {
 }
 
 // Add a new row to the mapping table
-function addMappingRow(chatCommand = '', action = '', sceneName = '', mediaName = '') {
+function addMappingRow(cmdKey = '', action = '', scene = '', media = '') {
     const tableBody = document.getElementById('mappingTableBody');
 
     const newRow = document.createElement('tr');
 
     newRow.innerHTML = `
-        <td><input type="text" class="chatCommand" value="${chatCommand}"></td>
+        <td><input type="text" class="chatCommand" value="${cmdKey}"></td>
         <td>
             <select class="action">
                 <option value="switchScene" ${action === 'switchScene' ? 'selected' : ''}>Switch Scene</option>
@@ -90,8 +90,8 @@ function addMappingRow(chatCommand = '', action = '', sceneName = '', mediaName 
                 <option value="stopMedia" ${action === 'stopMedia' ? 'selected' : ''}>Stop Media</option>
             </select>
         </td>
-        <td><input type="text" class="sceneName" value="${sceneName}"></td>
-        <td><input type="text" class="mediaName" value="${mediaName}"></td>
+        <td><input type="text" class="sceneName" value="${scene}"></td>
+        <td><input type="text" class="mediaName" value="${media}"></td>
         <td><button class="removeRow">Remove</button></td>
     `;
 

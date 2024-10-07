@@ -2,6 +2,8 @@ let obsSocket = null;
 let obsUrl = null;
 let obsCommands = null;
 let popupPort = null;
+let commandPrefix = '.';
+let paramDelimiter = ':';
 
 chrome.storage.sync.get(['obsUrl'], (items) => {
     if (items.obsUrl) {
@@ -33,30 +35,7 @@ function sendToPopup(request) {
     }
 }
 
-function getOBSCommand(chatMsg) {
-         console.log('obsCommands:', obsCommands);
-    if (obsCommands) {
-        let command = parseCommandParam(chatMsg);
-        let cmdKey = chatMsg;
-        let param = null;
-        if (command) {
-            cmdKey = command.cmd;
-            param = command.param;
-        }
-        let cmdMapping = obsCommands.find((mapping) => {
-            return mapping.chatCommand === cmdKey;
-        });
-        if (cmdMapping) {
-           return {
-               action: cmdMapping.action,
-               scene: cmdMapping.sceneName,
-               media: cmdMapping.mediaName,
-               param: param
-           };
-        }
-    }
-    return null;
-}
+
 function connectToOBS() {
     if (obsUrl) {
         sendToPopup({action: 'updateOBSStatus', status: `Trying to connect ${obsUrl}`});
@@ -101,9 +80,24 @@ function isOBSConnected() {
     return obsSocket && obsSocket.readyState === 1;
 }
 
+function getOBSCommand(chatMsg) {
+    if (obsCommands) {
+        let command = extractCommandFromMessage(chatMsg);
+        if (command) {
+            let cmdMapping = obsCommands.find((mapping) => {
+                return mapping.cmdKey === command.cmdKey;
+            });
+            if (cmdMapping) {
+                cmdMapping.params = command.params;
+                return cmdMapping;
+            }
+        }
+    }
+    return null;
+}
+
 function chatCommandHandler(chatCmd) {
     let command = getOBSCommand(chatCmd);
-    console.log('command:', command);
     if (command) {
         sendToPopup({action: 'updateOBSCommand', command: command});
         if (command.action === 'switchScene') {
@@ -117,8 +111,8 @@ function chatCommandHandler(chatCmd) {
             }
         }
         if (command.action === 'setText') {
-            if (command.media && command.param) {
-                setText(command.media, command.param);
+            if (command.media && command.params[0]) {
+                setText(command.media, command.params[0]);
             }
         }
     } else {
@@ -185,15 +179,15 @@ function generateRequestId() {
     return `request-${Date.now()}`;
 }
 
-function parseCommandParam(command) {
-    if (command.startsWith("$st:")) {
+function extractCommandFromMessage(message) {
+    if (message.startsWith(commandPrefix)) {
         // Extract the message after the "$st:"
-        const params = command.split(":");
+        const params = message.split(paramDelimiter);
 
         // Return the message trimmed of extra spaces
         return {
-            cmd: params[0],
-            param: params[1] ? params[1].trim() : null
+            cmdKey: params[0],
+            param: params.length > 1 ? params.slice(1).map(param => param.trim()) : null
         };
     }
     return null;

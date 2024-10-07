@@ -92,6 +92,7 @@ function contentListener(request) {
           sendToPopup({action: 'updateStatus', status: {background: 'Please reload youtube page CMD+R'}});
         } else {
           stopTryingToConnectToContent();
+          sendToPopup({action: 'updateStatus', status: {background: 'Background service connected'}});
         }
       }
     }
@@ -99,11 +100,7 @@ function contentListener(request) {
   if (request.action === 'newChatMessage') {
     updatePopupChatMessage(request.message);
     if (isOBSConnected()) {
-    console.log('message:', request.message);
-      if (request.message.startsWith("$")) {
-      console.log('message$:', request.message);
         chatCommandHandler(request.message);
-      }
     }
   }
 }
