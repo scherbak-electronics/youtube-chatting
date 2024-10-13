@@ -139,13 +139,11 @@ function playMedia(mediaSourceName) {
         obsSocket.send(JSON.stringify({
             "op": 6,  // Request operation code
             "d": {
-                "requestType": "SetInputSettings",  // Request type to change input settings
+                "requestType": "TriggerMediaInputAction",  // Request type to change input settings
                 "requestId": generateRequestId(),  // Generate a unique request ID
                 "requestData": {
                     "inputName": mediaSourceName,  // The media source in OBS (e.g., video or audio source)
-                    "inputSettings": {
-                        "playback": { "state": "playing" }  // Command OBS to start playing the media
-                    }
+                    "mediaAction": "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART"
                 }
             }
         }));
@@ -182,11 +180,11 @@ function generateRequestId() {
 function extractCommandFromMessage(message) {
     if (message.startsWith(commandPrefix)) {
         // Extract the message after the "$st:"
-        const params = message.split(paramDelimiter);
+        let params = message.split(paramDelimiter);
 
         // Return the message trimmed of extra spaces
         return {
-            cmdKey: params[0],
+            cmdKey: params[0] ? params[0].replace(commandPrefix, '') : null,
             param: params.length > 1 ? params.slice(1).map(param => param.trim()) : null
         };
     }
